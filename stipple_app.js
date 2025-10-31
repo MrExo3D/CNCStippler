@@ -7,7 +7,7 @@
 const UI = {
   headers: {
     title: "SVG Stipple Generator",
-    subtitle: "1 SVG unit = 1 inch. Uses your image’s native pixels for analysis. Voronoi (Lloyd) optimization, live updates."
+    subtitle: "1 SVG unit matches your selected output units (inches or millimeters). Uses your image’s native pixels for analysis. Voronoi (Lloyd) optimization, live updates."
   },
   sections: {
     basic: "Basic Sizing",
@@ -16,11 +16,12 @@ const UI = {
   },
   labels: {
     image: "Input image",
-    width: "Canvas width (in)",
-    height: "Canvas height (in)",
+    width: "Canvas width",
+    height: "Canvas height",
+    unit: "Units",
     lock: "Lock aspect ratio",
-    min: "Min dot size (in)",
-    range: "Dot size range (in)",
+    min: "Min dot size",
+    range: "Dot size range",
     count: "Dots (count)",
     invert: "Invert image",
     bg: "Preview background",
@@ -45,7 +46,7 @@ const UI = {
     placing: "Placing dots…",
     optimizing: "Optimizing (Voronoi)…",
     needImage: "Please choose an input image.",
-    done: (w,h)=>`✅ Done! Ready for download (${w}″ × ${h}″)`
+    done: (w,h,u)=>`✅ Done! Ready for download (${w} ${u} × ${h} ${u})`
   }
 };
 
@@ -57,6 +58,7 @@ const els={
   file:document.getElementById('file'),
   outWidthIn:document.getElementById('outWidthIn'),
   outHeightIn:document.getElementById('outHeightIn'),
+  unitSelect:document.getElementById('unitSelect'),
   lockAR:document.getElementById('lockAR'),
   count:document.getElementById('count'),
   seed:document.getElementById('seed'),
@@ -97,6 +99,7 @@ const els={
   tImage:document.getElementById('ui-label-image'),
   tWidth:document.getElementById('ui-label-width'),
   tHeight:document.getElementById('ui-label-height'),
+  tUnit:document.getElementById('ui-label-unit'),
   tLock:document.getElementById('ui-label-lock'),
   tMin:document.getElementById('ui-label-min'),
   tRange:document.getElementById('ui-label-range'),
@@ -126,6 +129,7 @@ function applyUIText(){
   els.tImage.textContent = UI.labels.image;
   els.tWidth.textContent = UI.labels.width;
   els.tHeight.textContent = UI.labels.height;
+  if(els.tUnit) els.tUnit.textContent = UI.labels.unit;
   els.tLock.textContent = UI.labels.lock;
   els.tMin.textContent = UI.labels.min;
   els.tRange.textContent = UI.labels.range;
@@ -146,6 +150,111 @@ function applyUIText(){
   els.download.textContent = UI.buttons.download;
   els.clear.textContent = UI.buttons.clear;
   els.swapColors.textContent = UI.buttons.swap;
+}
+
+const MM_PER_IN = 25.4;
+const UNIT_SETTINGS = {
+  in: {
+    suffix: 'in',
+    width: {min:1, max:200, step:0.01, decimals:2},
+    height: {min:1, max:200, step:0.01, decimals:2},
+    minSize: {min:0, step:0.0001, decimals:4},
+    rangeSize: {min:0, step:0.0001, decimals:4}
+  },
+  mm: {
+    suffix: 'mm',
+    width: {min:25.4, max:5080, step:0.1, decimals:1},
+    height: {min:25.4, max:5080, step:0.1, decimals:1},
+    minSize: {min:0, step:0.01, decimals:2},
+    rangeSize: {min:0, step:0.01, decimals:2}
+  }
+};
+
+let currentUnits = 'in';
+
+function formatNumberForUnit(value, unit, key){
+  const cfg=UNIT_SETTINGS[unit][key];
+  const decimals=cfg && cfg.decimals!=null ? cfg.decimals : (unit==='in'?3:1);
+  if(!Number.isFinite(value)) return '';
+  const fixed=value.toFixed(decimals);
+  return decimals>0 ? fixed.replace(/\.0+$/,'').replace(/(\.\d*?)0+$/,'$1') : fixed;
+}
+
+function updateUnitLabels(){
+  const suffix = currentUnits==='in' ? ' (in)' : ' (mm)';
+  els.tWidth.textContent = UI.labels.width + suffix;
+  els.tHeight.textContent = UI.labels.height + suffix;
+  els.tMin.textContent = UI.labels.min + suffix;
+  els.tRange.textContent = UI.labels.range + suffix;
+  if(els.tUnit) els.tUnit.textContent = UI.labels.unit;
+}
+
+function setNumberInputAttributes(el, cfg){
+  if(!el || !cfg) return;
+  if(cfg.min!=null){ el.min = cfg.min; } else { el.removeAttribute('min'); }
+  if(cfg.max!=null){ el.max = cfg.max; } else { el.removeAttribute('max'); }
+  if(cfg.step!=null){ el.step = cfg.step; } else { el.removeAttribute('step'); }
+}
+
+function clampInches(value, key){
+  const cfg = UNIT_SETTINGS.in[key];
+  let v = Number.isFinite(value) ? value : 0;
+  if(cfg && cfg.min!=null) v = Math.max(cfg.min, v);
+  if(cfg && cfg.max!=null) v = Math.min(cfg.max, v);
+  return v;
+}
+
+function readInputInches(el, key){
+  if(!el) return 0;
+  const raw = parseFloat(el.value);
+  if(!Number.isFinite(raw)) return clampInches(0, key);
+  const inches = currentUnits==='in'?raw:raw/MM_PER_IN;
+  return clampInches(inches, key);
+}
+
+function setInputFromInches(el, key, inches){
+  if(!el) return;
+  const clamped = clampInches(inches, key);
+  const value = currentUnits==='in'?clamped:clamped*MM_PER_IN;
+  el.value = formatNumberForUnit(value, currentUnits, key);
+}
+
+function applyUnitToInputs(){
+  const cfg = UNIT_SETTINGS[currentUnits];
+  setNumberInputAttributes(els.outWidthIn, cfg.width);
+  setNumberInputAttributes(els.outHeightIn, cfg.height);
+  setNumberInputAttributes(els.minSizeIn, cfg.minSize);
+  setNumberInputAttributes(els.rangeSizeIn, cfg.rangeSize);
+  if(els.unitSelect) els.unitSelect.value = currentUnits;
+}
+
+function switchUnits(newUnit){
+  if(newUnit===currentUnits || !UNIT_SETTINGS[newUnit]) return;
+  const fields=[
+    {el:els.outWidthIn,key:'width'},
+    {el:els.outHeightIn,key:'height'},
+    {el:els.minSizeIn,key:'minSize'},
+    {el:els.rangeSizeIn,key:'rangeSize'}
+  ];
+  const valuesInches=fields.map(({el,key})=>readInputInches(el,key));
+  currentUnits=newUnit;
+  applyUnitToInputs();
+  updateUnitLabels();
+  fields.forEach(({el,key},idx)=>{
+    const inches=valuesInches[idx];
+    const converted=currentUnits==='in'?inches:inches*MM_PER_IN;
+    el.value=formatNumberForUnit(converted, currentUnits, key);
+  });
+  resetProgress();
+  startRenderDebounced();
+}
+
+function formatUnitDisplay(value, unit){
+  const digits = unit==='in'?3:1;
+  return new Intl.NumberFormat(undefined, {
+    maximumFractionDigits:digits,
+    minimumFractionDigits:0
+  }).format(value);
 }
 
 /* ==========================================================================
@@ -350,15 +459,18 @@ function shapeToSVG(shape, cx, cy, r){
   return `<circle cx="${cx}" cy="${cy}" r="${r.toFixed(4)}" />\n`;
 }
 function composeSVG(points, opts){
-  const outW=opts.outWIn, outH=opts.outHIn;
+  const unit = opts.unit || 'in';
+  const unitScale = unit==='in'?1:MM_PER_IN;
+  const outW=opts.outWIn*unitScale, outH=opts.outHIn*unitScale;
   const sx=outW/source.w, sy=outH/source.h;
+  const suffix = UNIT_SETTINGS[unit]?.suffix || unit;
   let parts=[];
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${outW} ${outH}" width="${outW}in" height="${outH}in" shape-rendering="geometricPrecision">\n`);
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${outW.toFixed(4)} ${outH.toFixed(4)}" width="${outW.toFixed(4)}${suffix}" height="${outH.toFixed(4)}${suffix}" shape-rendering="geometricPrecision">\n`);
   parts.push(`<rect width="100%" height="100%" fill="${opts.bgColor||'#ffffff'}"/>\n`);
   parts.push(`<g fill="${opts.fillColor||'#000000'}" stroke="none">\n`);
   for(const p of points){
     const dScaled=Math.pow(p.d, opts.gamma);
-    const r = Math.max(0, (opts.minIn + opts.rangeIn * dScaled))/2;
+    const r = Math.max(0, (opts.minIn + opts.rangeIn * dScaled) * unitScale)/2;
     const cx=(p.x*sx), cy=(p.y*sy);
     parts.push(shapeToSVG(opts.shape, cx, cy, r));
   }
@@ -384,16 +496,33 @@ async function renderAll(){
   els.render.disabled=true; els.download.disabled=true;
 
   const t0=performance.now();
+  const minIn = Math.max(0, readInputInches(els.minSizeIn, 'minSize'));
+  const rangeIn = Math.max(0, readInputInches(els.rangeSizeIn, 'rangeSize'));
+  const outWIn = readInputInches(els.outWidthIn, 'width');
+  const outHIn = readInputInches(els.outHeightIn, 'height');
+
+  setInputFromInches(els.minSizeIn, 'minSize', minIn);
+  setInputFromInches(els.rangeSizeIn, 'rangeSize', rangeIn);
+  setInputFromInches(els.outWidthIn, 'width', outWIn);
+  setInputFromInches(els.outHeightIn, 'height', outHIn);
+
+  const unitConfig = UNIT_SETTINGS[currentUnits] || UNIT_SETTINGS.in;
+  const unitSuffix = unitConfig.suffix;
+  const unitScale = currentUnits==='mm'?MM_PER_IN:1;
+  const outWDisplay = outWIn * unitScale;
+  const outHDisplay = outHIn * unitScale;
+
   const base={
     count:Math.max(100, Math.min(100000, +els.count.value||15000)),
     seed:(+els.seed.value||0)>>>0,
     gamma:Math.max(.1, +els.gamma.value||1),
     boost:Math.max(0, Math.min(1, +els.boost.value||0)),
     invert:!!els.invert.checked,
-    minIn:Math.max(0, +els.minSizeIn.value||0),
-    rangeIn:Math.max(0, +els.rangeSizeIn.value||0),
-    outWIn:Math.max(1, Math.min(200, +els.outWidthIn.value||24)),
-    outHIn:Math.max(1, Math.min(200, +els.outHeightIn.value||24)),
+    minIn,
+    rangeIn,
+    outWIn,
+    outHIn,
+    unit:currentUnits,
     fillColor:els.previewDot.value||'#000000',
     bgColor:els.previewBg.value||'#ffffff',
     shape:(els.dotShape && els.dotShape.value) || 'circle'
@@ -417,7 +546,9 @@ async function renderAll(){
   currentSvg = `<?xml version="1.0" encoding="UTF-8"?>\n` + svg;
   const t1=performance.now();
   els.stats.textContent=`Points: ${num(points.length)} • ${(t1-t0).toFixed(0)} ms`;
-  els.status.textContent=UI.popups.done(base.outWIn, base.outHIn);
+  const formattedW = formatUnitDisplay(outWDisplay, currentUnits);
+  const formattedH = formatUnitDisplay(outHDisplay, currentUnits);
+  els.status.textContent=UI.popups.done(formattedW, formattedH, unitSuffix);
   els.render.disabled=false; els.download.disabled=false;
   showOverlay(false); isRendering=false;
 }
@@ -441,8 +572,12 @@ els.file.addEventListener('change', (e)=>{
     const imageData=ctx.getImageData(0,0,sw,sh);
     source.w=sw; source.h=sh; source.data=imageData.data;
     els.imgInfo.textContent=`${sw}×${sh}`;
-    const wIn=Math.max(1,+els.outWidthIn.value||24); const ratio=sh/sw;
-    if(els.lockAR.checked){ els.outHeightIn.value=Math.min(200, Math.max(1, +(wIn*ratio).toFixed(3))); }
+    const widthInches = readInputInches(els.outWidthIn, 'width');
+    const ratio=sh/sw;
+    if(els.lockAR.checked){
+      const heightInches = clampInches(widthInches*ratio, 'height');
+      setInputFromInches(els.outHeightIn, 'height', heightInches);
+    }
     URL.revokeObjectURL(url);
     if(els.fileRow) els.fileRow.classList.remove('highlight');
     startRenderDebounced();
@@ -453,21 +588,55 @@ els.file.addEventListener('change', (e)=>{
 function onChange(){ resetProgress(); startRenderDebounced(); }
 function clampCount(){ let v=+els.count.value||0; if(v>100000){els.count.value=100000;} }
 
-els.lockAR.addEventListener('change', ()=>{ if(els.lockAR.checked){const ratio = source.h && source.w ? source.h/source.w : 1; const wIn=Math.max(1,+els.outWidthIn.value||24); els.outHeightIn.value=Math.min(200, Math.max(1, +(wIn*ratio).toFixed(3)));} onChange();});
-els.outWidthIn.addEventListener('change', ()=>{ if(els.lockAR.checked){ const ratio= source.h && source.w ? source.h/source.w : 1; const wIn=Math.max(1,+els.outWidthIn.value||24); els.outHeightIn.value=Math.min(200, Math.max(1, +(wIn*ratio).toFixed(3))); } onChange();});
-els.outHeightIn.addEventListener('change', ()=>{ if(els.lockAR.checked){ const ratio= source.h && source.w ? source.h/source.w : 1; const hIn=Math.max(1,+els.outHeightIn.value||24); els.outWidthIn.value=Math.min(200, Math.max(1, +(hIn/ratio).toFixed(3))); } onChange();});
+els.lockAR.addEventListener('change', ()=>{
+  if(els.lockAR.checked){
+    const ratio = source.h && source.w ? source.h/source.w : 1;
+    const widthInches = readInputInches(els.outWidthIn, 'width');
+    const heightInches = clampInches(widthInches * ratio, 'height');
+    setInputFromInches(els.outHeightIn, 'height', heightInches);
+  }
+  onChange();
+});
+els.outWidthIn.addEventListener('change', ()=>{
+  if(els.lockAR.checked){
+    const ratio = source.h && source.w ? source.h/source.w : 1;
+    const widthInches = readInputInches(els.outWidthIn, 'width');
+    const heightInches = clampInches(widthInches * ratio, 'height');
+    setInputFromInches(els.outHeightIn, 'height', heightInches);
+  }
+  onChange();
+});
+els.outHeightIn.addEventListener('change', ()=>{
+  if(els.lockAR.checked){
+    const ratio = source.h && source.w ? source.h/source.w : 1;
+    if(ratio>0){
+      const heightInches = readInputInches(els.outHeightIn, 'height');
+      const widthInches = clampInches(heightInches/ratio, 'width');
+      setInputFromInches(els.outWidthIn, 'width', widthInches);
+    }
+  }
+  onChange();
+});
 els.count.addEventListener('change', ()=>{ clampCount(); onChange(); });
 ['seed','minSizeIn','rangeSizeIn','gamma','boost','invert','preventOverlap','paddingPct','optimIter','cellStep','previewBg','previewDot','dotShape'].forEach(id=>{
   const el=document.getElementById(id); if(!el) return; const ev=(el.tagName==='INPUT' && el.type==='range')?'input':'change'; el.addEventListener(ev, onChange);
 });
 els.swapColors.addEventListener('click', ()=>{ const a=els.previewBg.value; els.previewBg.value=els.previewDot.value; els.previewDot.value=a; onChange(); });
 
+if(els.unitSelect){
+  els.unitSelect.addEventListener('change', (e)=>{
+    switchUnits(e.target.value);
+  });
+}
+
 els.render.addEventListener('click', ()=>renderAll());
 els.download.addEventListener('click', ()=>{
   if(!currentSvg || !currentSvg.trim().startsWith('<?xml')){ return; }
   const blob=new Blob([currentSvg], {type:'image/svg+xml;charset=utf-8'});
   const url=URL.createObjectURL(blob);
-  const a=document.createElement('a'); a.href=url; a.download='stipple_in_inches.svg';
+  const suffix = UNIT_SETTINGS[currentUnits]?.suffix || 'in';
+  const filename = `stipple_output_${suffix}.svg`;
+  const a=document.createElement('a'); a.href=url; a.download=filename;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(url), 2000);
 });
@@ -479,3 +648,5 @@ els.clear.addEventListener('click', ()=>{
 
 /* Boot */
 applyUIText();
+updateUnitLabels();
+applyUnitToInputs();
