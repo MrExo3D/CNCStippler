@@ -1,0 +1,96 @@
+/* ui_clean.css — minimal DOS‑green theme with robust layout */
+:root{
+  --bg:#000;
+  --fg:#28956b;
+  --fg-dim:#1a5f46;
+  --border:#28956b;
+  --radius:8px;
+  --w-side:360px;
+  --ctl-w:220px;
+  --fs:18px;
+}
+*{box-sizing:border-box}
+html,body{overflow-x:auto; margin:0;background:var(--bg);color:var(--fg);font-family:"VT323",monospace;font-size:var(--fs);}
+.logo{max-width:min(100%,1200px);height:auto;display:block;margin:18px 12px 6px;}
+.subtitle{margin:0 12px 12px;opacity:.9;letter-spacing:1px;font-size:16px}
+
+.shell{display:grid;grid-template-columns:var(--w-side) 1fr;gap:16px;padding:0 12px 24px;}
+
+
+.panel{border:2px solid var(--border);border-radius:var(--radius);padding:12px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.block{border:2px solid var(--border);border-radius:6px;padding:10px}
+.block h2{margin:0 0 8px 0;font-family:"Press Start 2P", monospace;font-size:16px;letter-spacing:1px}
+
+.row{display:grid;grid-template-columns:1fr var(--ctl-w);align-items:center;gap:8px;margin:6px 0}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type="file"]{font-size:0}
+input[type="file"]::file-selector-button{font-family:"Press Start 2P", monospace;padding:6px 10px;background:var(--fg);color:#000;border:2px solid var(--border);border-radius:6px;cursor:pointer}
+.meta{opacity:.85;font-size:15px}
+
+select,input[type="number"],input[type="text"],input[type="color"]{width:var(--ctl-w);max-width:var(--ctl-w);background:#000;color:var(--fg);border:2px solid var(--border);border-radius:6px;padding:4px 6px}
+input[type="range"]{width:var(--ctl-w)}
+
+.actions{display:flex;gap:8px;margin-top:4px;flex-wrap:wrap}
+.btn{padding:6px 10px;border:2px solid var(--fg);background:var(--fg);color:#000;border-radius:8px;cursor:pointer;font-family:"Press Start 2P", monospace}
+.btn.primary{box-shadow:inset 0 0 0 2px #000}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+.status{margin:8px 0 0 0;font-size:15px}
+.badge{border:2px solid var(--border);padding:4px 6px;border-radius:6px;display:inline-block}
+
+.stage{border:2px solid var(--border);border-radius:var(--radius);padding:12px;position:relative;min-height:640px}
+.canvasStage{background:#000;border:2px solid var(--border);border-radius:6px;min-height:600px;position:relative;overflow:auto}
+
+.overlay{position:absolute;inset:12px;display:grid;place-items:center;background:rgba(0,0,0,.3);}
+.overlay[hidden]{display:none}
+.overlay .box{display:grid;gap:10px;justify-items:center}
+.spinner{width:28px;height:28px;border:3px solid var(--fg-dim);border-top-color:var(--fg);border-radius:50%;animation:spin 1s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* === Green theming for sliders and checkboxes === */
+input[type="range"]{
+  -webkit-appearance: none;
+  height: 20px;
+  background: #001a14;
+  border:2px solid var(--border);
+  border-radius:6px;
+}
+input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  width: 16px; height: 16px;
+  background: var(--fg);
+  border: 2px solid #000;
+  border-radius: 2px;
+}
+input[type="range"]::-moz-range-thumb{
+  width: 16px; height: 16px;
+  background: var(--fg);
+  border: 2px solid #000;
+}
+input[type="range"]::-moz-range-track{
+  background:#001a14;
+  height: 16px;
+  border:2px solid var(--border);
+}
+
+/* Checkboxes */
+input[type="checkbox"]{
+  appearance:none;
+  width: 18px; height: 18px;
+  border:2px solid var(--border);
+  background:#000;
+  border-radius:4px;
+}
+input[type="checkbox"]:checked{
+  background: var(--fg);
+  border-color: var(--fg);
+}
+
+/* Make color inputs and selects outline in green when focused */
+select:focus, input[type="number"]:focus, input[type="text"]:focus, input[type="color"]:focus{
+  outline: 2px solid var(--fg);
+  outline-offset: 1px;
+}
+
+/* Source thumbnail under 'Input image' row */
+.thumb{ display:block; margin-top:8px; border:2px solid var(--border); border-radius:6px; max-width:200px; height:auto; }

@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>DOT‑O‑MATIC — SVG Stipple Generator (Voronoi/Lloyd), Non‑Overlapping Dots</title>
+  <link rel="stylesheet" href="ui_clean.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=VT323&display=swap" rel="stylesheet"><!-- === SEO: BASIC === -->
+  <title>DOT‑O‑MATIC — SVG Stipple Generator (Voronoi/Lloyd), Non‑Overlapping Dots</title>
+  <meta name="description" content="Generate clean, scalable SVG stipple art from a black‑and‑white image. Configurable dot sizes, units that match your final output, Voronoi (Lloyd) optimization, and live preview." />
+  <meta name="keywords" content="SVG stipple generator, stippling tool, stippler, dot art, halftone dots, Voronoi, Lloyd relaxation, vector stipple, engraving, CNC, laser, poster, pointillism" />
+  <link rel="canonical" href="https://dotomatic3000.com/" />
+  <meta name="robots" content="index,follow,max-snippet:-1,max-image-preview:large,max-video-preview:-1" />
+  <!-- === SEO: Open Graph / Twitter === -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="DOT‑O‑MATIC" />
+  <meta property="og:title" content="DOT‑O‑MATIC — SVG Stipple Generator (Voronoi/Lloyd), Non‑Overlapping Dots" />
+  <meta property="og:description" content="Generate clean, scalable SVG stipple art from a black‑and‑white image. Configurable dot sizes, units that match your final output, Voronoi (Lloyd) optimization, and live preview." />
+  <meta property="og:url" content="https://dotomatic3000.com/" />
+  <meta property="og:image" content="assets/og-cover.png" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="DOT‑O‑MATIC — SVG Stipple Generator (Voronoi/Lloyd), Non‑Overlapping Dots" />
+  <meta name="twitter:description" content="Generate clean, scalable SVG stipple art from a black‑and‑white image. Configurable dot sizes, units that match your final output, Voronoi (Lloyd) optimization, and live preview." />
+  <meta name="twitter:image" content="assets/og-cover.png" />
+  <!-- TODO: Replace CANONICAL_URL with your production domain above. -->
+  <!-- === JSON‑LD Schema.org === -->
+  <script type="application/ld+json">
+  {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  "name": "DOT‑O‑MATIC",
+  "url": "https://YOUR-DOMAIN-Here/",
+  "potentialAction": {
+    "@type": "SearchAction",
+    "target": "https://YOUR-DOMAIN-Here/?q={search_term_string}",
+    "query-input": "required name=search_term_string"
+  }
+}
+  </script>
+  <script type="application/ld+json">
+  {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "DOT‑O‑MATIC",
+  "applicationCategory": "MultimediaApplication",
+  "operatingSystem": "Web",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  },
+  "description": "Generate clean, scalable SVG stipple art from a black‑and‑white image. Configurable dot sizes, units that match your final output, Voronoi (Lloyd) optimization, and live preview."
+}
+  </script>
+</head>
+<body>
+  <header class="top">
+    <img src="dotomatic3klogo.png" alt="DOT‑O‑MATIC 3000" class="logo" />
+    <p class="subtitle">SVG STIPPLE GENERATOR · 1 SVG unit matches your selected output units. Voronoi (Lloyd) optimization, live updates.</p>
+  </header>
+
+  <main class="shell">
+    <aside class="panel">
+      <section class="block">
+        <h2>Basic sizing</h2>
+
+        <div class="row">
+          <label for="file">Input image</label>
+          <div class="ctrl">
+            <input id="file" type="file" accept="image/*" style="display:none" />
+            <button id="btnLoad" type="button" class="btn">Load image</button>
+            <small id="imgInfo" class="meta"></small>
+            <img id="thumbSrc" class="thumb" alt="Source thumbnail" / src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==">
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="outWidthIn">Canvas width</label>
+          <input id="outWidthIn" type="number" step="0.01" value="24" />
+        </div>
+
+        <div class="row">
+          <label for="outHeightIn">Canvas height</label>
+          <input id="outHeightIn" type="number" step="0.01" value="24" />
+        </div>
+
+        <div class="row">
+          <label for="unitSelect">Units</label>
+          <select id="unitSelect">
+            <option value="in" selected>Inches</option>
+            <option value="mm">Millimeters</option>
+          </select>
+        </div>
+
+        <div class="row">
+          <label for="lockAR">Lock aspect ratio</label>
+          <input id="lockAR" type="checkbox" checked />
+        </div>
+
+        <div class="row">
+          <label for="minSizeIn">Min dot size</label>
+          <input id="minSizeIn" type="number" step="0.0001" value="0.0625" />
+        </div>
+
+        <div class="row">
+          <label for="rangeSizeIn">Dot size range</label>
+          <input id="rangeSizeIn" type="number" step="0.0001" value="0.25" />
+        </div>
+
+        <div class="row">
+          <label for="count">Dots (count)</label>
+          <input id="count" type="number" step="1" value="1500" />
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Appearance</h2>
+
+        <div class="row">
+          <label for="invert">Invert image</label>
+          <input id="invert" type="checkbox" checked />
+        </div>
+
+        <div class="row">
+          <label for="previewBg">Background</label>
+          <input id="previewBg" type="color" value="#000000" />
+        </div>
+
+        <div class="row">
+          <label for="previewDot">Dot color</label>
+          <div class="ctrl">
+            <input id="previewDot" type="color" value="#28956b" />
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="swapColors">Swap colours</label>
+          <div class="ctrl">
+            <button id="swapColors" type="button" class="btn">SWAP colours</button>
+          </div>
+        </div>
+
+        <div class="row">
+          <label for="dotShape">Dot shape</label>
+          <select id="dotShape">
+            <option value="circle" selected>Circle</option>
+            <option value="square">Square</option>
+          </select>
+        </div>
+      </section>
+
+      <section class="block">
+        <h2>Advanced</h2>
+
+        <div class="row">
+          <label for="seed">Seed</label>
+          <input id="seed" type="number" value="12345" />
+        </div>
+
+        <div class="row">
+          <label for="gamma">Gamma</label>
+          <input id="gamma" type="range" min="0.25" max="4" step="0.05" value="1" />
+        </div>
+
+        <div class="row">
+          <label for="boost">Placement boost</label>
+          <input id="boost" type="range" min="0" max="1" step="0.01" value="0" />
+        </div>
+
+        <div class="row">
+          <label for="preventOverlap">Prevent dot overlap</label>
+          <input id="preventOverlap" type="checkbox" />
+        </div>
+
+        <div class="row">
+          <label for="paddingPct">Padding between dots (%)</label>
+          <input id="paddingPct" type="number" step="1" value="20" />
+        </div>
+
+        <div class="row">
+          <label for="optimIter">Iterations (Voronoi)</label>
+          <input id="optimIter" type="number" step="1" value="20" />
+        </div>
+
+        <div class="row">
+          <label for="cellStep">Cell sample step (px)</label>
+          <input id="cellStep" type="number" step="1" value="2" />
+        </div>
+      </section>
+
+      <div class="actions">
+        <button id="render" class="btn primary">Generate</button>
+        <button id="download" class="btn" disabled>Download SVG</button>
+        <button id="clear" class="btn">Clear</button>
+      </div>
+
+      <p id="status" class="status" aria-live="polite">Ready.</p>
+      <span id="stats" class="meta">–</span>
+    </aside>
+
+    <section class="stage">
+      <div id="canvasStage" class="canvasStage"></div>
+      <div id="overlay" class="overlay" hidden>
+        <div class="box">
+          <div class="spinner" aria-hidden="true"></div>
+          <div id="overlayText" class="badge">Processing…</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Hidden working canvas for image sampling -->
+  <canvas id="hiddenCanvas" style="display:none"></canvas>
+
+  <script src="stipple_app.js"></script>
+
+  <section id="faq" class="container mx-auto" style="max-width: 1200px; padding: 1rem 1.2rem;">
+    <h2 style="font-size:1.5rem;">FAQ</h2>
+    <details><summary><strong>What file format is the output?</strong></summary>
+      <p>SVG vector output. One SVG unit equals your selected output unit for predictable sizing.</p>
+    </details>
+    <details><summary><strong>Do dots overlap?</strong></summary>
+      <p>No. The algorithm prevents overlap within your chosen size range.</p>
+    </details>
+    <details><summary><strong>Is this suitable for CNC or laser etching?</strong></summary>
+      <p>Yes. Because output is vector, you can scale precisely and post-process in Illustrator, Inkscape, or CAM tools.</p>
+    </details>
+    <details><summary><strong>How does optimization work?</strong></summary>
+      <p>We use centroidal Voronoi relaxation (Lloyd iterations) to spread dots evenly while respecting brightness‑mapped sizing.</p>
+    </details>
+  </section>
+
+
+  <section aria-label="About DOT-O-MATIC" style="max-width:1200px;margin:2rem auto;padding:0 1.2rem;">
+    <h2 style="font-size:1.1rem;margin:0 0 .5rem 0;">About this SVG stipple generator</h2>
+    <p style="max-width:65ch;margin:0;">
+      DOT-O-MATIC generates clean, non-overlapping SVG stipple art with adjustable dot sizes and units.
+      The algorithm uses Lloyd (centroidal Voronoi) optimization for even distribution, suitable for posters,
+      CNC/laser workflows, and print.
+    </p>
+  </section>
+
+</body>
+</html>

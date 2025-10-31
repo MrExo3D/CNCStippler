@@ -39,7 +39,7 @@ const UI = {
     generate: "Generate",
     download: "Download SVG",
     clear: "Clear",
-    swap: "Swap"
+    swap: "SWAP colours"
   },
   popups: {
     processing: "Processing…",
@@ -54,6 +54,8 @@ const UI = {
    RUNTIME STATE & DOM HOOKUP
    ========================================================================== */
 const els={
+  thumb:document.getElementById('thumbSrc'),
+  btnLoad:document.getElementById("btnLoad"),
   // inputs
   file:document.getElementById('file'),
   outWidthIn:document.getElementById('outWidthIn'),
@@ -263,8 +265,8 @@ function formatUnitDisplay(value, unit){
 function rng(seed){let t=seed>>>0;return function(){t+=0x6D2B79F5;let r=Math.imul(t^t>>>15,1|t);r^=r+Math.imul(r^r>>>7,61|r);return((r^r>>>14)>>>0)/4294967296;}}
 function num(n){return new Intl.NumberFormat().format(n);}
 function clamp01(x){return x<0?0:(x>1?1:x);}
-function setProgress(p){p=Math.max(0,Math.min(100,p|0));els.barFill.style.width=p+'%';els.barPct.textContent=p+'%';}
-function resetProgress(){setProgress(0);}
+function setProgress(p){ if(els.barFill&&els.barPct){ p=Math.max(0,Math.min(100,p|0)); els.barFill.style.width=p+'%'; els.barPct.textContent=p+'%'; } }
+function resetProgress(){ setProgress(0); }
 function showOverlay(on){els.overlay.classList.toggle('show',!!on);}
 function debounce(fn,ms){let t;return(...a)=>{clearTimeout(t);t=setTimeout(()=>fn(...a),ms);}}
 
@@ -558,32 +560,35 @@ async function renderAll(){
    ========================================================================== */
 const startRenderDebounced=debounce(renderAll,200);
 
-els.file.addEventListener('change', (e)=>{
-  const file=e.target.files[0]; if(!file) return;
-  const url=URL.createObjectURL(file);
-  const img=new Image();
-  img.onload=()=>{
-    source.img=img;
-    const hc=els.hiddenCanvas, ctx=hc.getContext('2d',{willReadFrequently:true});
-    let sw=img.naturalWidth, sh=img.naturalHeight;
-    const maxSide=8000; if(sw>maxSide||sh>maxSide){const k=Math.min(maxSide/sw, maxSide/sh); sw=Math.max(1,Math.floor(sw*k)); sh=Math.max(1,Math.floor(sh*k));}
-    hc.width=sw; hc.height=sh;
-    ctx.clearRect(0,0,sw,sh); ctx.drawImage(img,0,0,sw,sh);
-    const imageData=ctx.getImageData(0,0,sw,sh);
-    source.w=sw; source.h=sh; source.data=imageData.data;
-    els.imgInfo.textContent=`${sw}×${sh}`;
-    const widthInches = readInputInches(els.outWidthIn, 'width');
-    const ratio=sh/sw;
-    if(els.lockAR.checked){
-      const heightInches = clampInches(widthInches*ratio, 'height');
-      setInputFromInches(els.outHeightIn, 'height', heightInches);
-    }
-    URL.revokeObjectURL(url);
-    if(els.fileRow) els.fileRow.classList.remove('highlight');
-    startRenderDebounced();
-  };
-  img.src=url;
-});
+if(els.btnLoad){ els.btnLoad.addEventListener("click", ()=> els.file && els.file.click()); }
+
+function handleLoadedImage(img, filename){
+  source.img=img;
+  const hc=els.hiddenCanvas, ctx=hc.getContext('2d',{willReadFrequently:true});
+  let sw=img.naturalWidth, sh=img.naturalHeight;
+  const maxSide=8000; if(sw>maxSide||sh>maxSide){const k=Math.min(maxSide/sw,maxSide/sh); sw=Math.max(1,Math.floor(sw*k)); sh=Math.max(1,Math.floor(sh*k));}
+  hc.width=sw; hc.height=sh;
+  ctx.clearRect(0,0,sw,sh); ctx.drawImage(img,0,0,sw,sh);
+  const imageData=ctx.getImageData(0,0,sw,sh);
+  source.w=sw; source.h=sh; source.data=imageData.data;
+  if(els.imgInfo) els.imgInfo.textContent = (filename||'Image')+` — ${sw}×${sh} px`;
+  if(els.thumb){ els.thumb.src = img.src; els.thumb.width = Math.min(200, sw); }
+  const widthInches = readInputInches(els.outWidthIn, 'width');
+  const ratio=sh/sw;
+  if(els.lockAR && els.lockAR.checked){
+    const heightInches = clampInches(widthInches * ratio, 'height');
+    setInputFromInches(els.outHeightIn, 'height', heightInches);
+  }
+  onChange();
+}
+function loadImageFromURL(url, filename){
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = ()=> handleLoadedImage(img, filename);
+  img.onerror = ()=> { if(els.status) els.status.textContent='Failed to load default image.'; };
+  img.src = url;
+}
+els.file.addEventListener('change', (e)=>{ const file=e.target.files[0]; if(!file) return; const url=URL.createObjectURL(file); const img=new Image(); img.onload=()=> handleLoadedImage(img, file.name || 'image'); img.src=url; });
 
 function onChange(){ resetProgress(); startRenderDebounced(); }
 function clampCount(){ let v=+els.count.value||0; if(v>100000){els.count.value=100000;} }
@@ -650,3 +655,5 @@ els.clear.addEventListener('click', ()=>{
 applyUIText();
 updateUnitLabels();
 applyUnitToInputs();
+
+const DEFAULT_IMAGE = '';
