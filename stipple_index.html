@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SVG Stipple Generator</title>
+  <link rel="stylesheet" href="stipple_styles.css" />
+</head>
+<body>
+<div class="wrap">
+  <h1 id="ui-title"></h1>
+  <p id="ui-subtitle"></p>
+
+  <div class="shell">
+    <!-- LEFT: CONTROLS -->
+    <div class="card">
+      <!-- Basic Sizing -->
+      <div class="section">
+        <h2 id="ui-sec-basic"></h2>
+
+        <div class="row" id="fileRow">
+          <label id="ui-label-image" for="file"></label>
+          <div class="controls-tight">
+            <input id="file" type="file" accept="image/*" />
+            <span id="imgInfo" class="badge">No image</span>
+          </div>
+        </div>
+
+        <div class="grid-2">
+          <div class="row">
+            <label id="ui-label-width" for="outWidthIn"></label>
+            <input id="outWidthIn" class="short" type="number" min="1" max="200" step="0.01" value="24" />
+          </div>
+          <div class="row">
+            <label id="ui-label-height" for="outHeightIn"></label>
+            <input id="outHeightIn" class="short" type="number" min="1" max="200" step="0.01" value="24" />
+          </div>
+        </div>
+
+        <div class="control-inline">
+          <label id="ui-label-lock" for="lockAR"></label>
+          <input id="lockAR" type="checkbox" checked />
+        </div>
+
+        <div class="grid-2">
+          <div class="row">
+            <label id="ui-label-min" for="minSizeIn"></label>
+            <input id="minSizeIn" class="short" type="number" min="0" step="0.0001" value="0.0625" />
+          </div>
+          <div class="row">
+            <label id="ui-label-range" for="rangeSizeIn"></label>
+            <input id="rangeSizeIn" class="short" type="number" min="0" step="0.0001" value="0.25" />
+          </div>
+        </div>
+
+        <div class="row">
+          <label id="ui-label-count" for="count"></label>
+          <input id="count" class="narrow" type="number" min="100" max="100000" step="100" value="1500" />
+        </div>
+      </div>
+
+      <!-- Appearance -->
+      <div class="section">
+        <h2 id="ui-sec-appearance"></h2>
+
+        <div class="grid-3">
+          <div class="row">
+            <label id="ui-label-invert" for="invert"></label>
+            <div class="controls-tight"><input id="invert" type="checkbox" /></div>
+          </div>
+          <div class="row">
+            <label id="ui-label-bg" for="previewBg"></label>
+            <div class="controls-tight"><input id="previewBg" type="color" value="#ffffff" /></div>
+          </div>
+          <div class="row">
+            <label id="ui-label-dot" for="previewDot"></label>
+            <div class="controls-tight">
+              <input id="previewDot" type="color" value="#000000" />
+              <button id="swapColors" title="Swap colors"></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="grid-3" style="margin-top:4px">
+          <div class="row">
+            <label id="ui-label-shape" for="dotShape"></label>
+            <select id="dotShape">
+              <option value="circle">Circle</option>
+              <option value="square">Square</option>
+              <option value="triangle">Triangle</option>
+              <option value="star">Star (5-point)</option>
+            </select>
+          </div>
+          <div class="row"></div><div class="row"></div>
+        </div>
+      </div>
+
+      <!-- Advanced -->
+      <div class="section">
+        <h2 id="ui-sec-advanced"></h2>
+
+        <div class="grid-3">
+          <div class="row">
+            <label id="ui-label-seed" for="seed"></label>
+            <input id="seed" type="number" step="1" value="12345" />
+          </div>
+          <div class="row">
+            <label id="ui-label-gamma" for="gamma"></label>
+            <input id="gamma" type="range" min="0.2" max="3" step="0.05" value="1.0" />
+          </div>
+          <div class="row">
+            <label id="ui-label-boost" for="boost"></label>
+            <input id="boost" type="range" min="0" max="1" step="0.01" value="0.0" />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="row">
+            <label id="ui-label-overlap" for="preventOverlap"></label>
+            <div class="controls-tight"><input id="preventOverlap" type="checkbox" checked /></div>
+          </div>
+          <div class="row">
+            <label id="ui-label-padding" for="paddingPct"></label>
+            <input id="paddingPct" type="number" min="0" step="1" value="20" />
+          </div>
+          <div class="row">
+            <label id="ui-label-iter" for="optimIter"></label>
+            <input id="optimIter" type="number" min="1" max="80" step="1" value="20" />
+          </div>
+        </div>
+
+        <div class="grid-3">
+          <div class="row">
+            <label id="ui-label-cell" for="cellStep"></label>
+            <input id="cellStep" type="number" min="1" max="6" step="1" value="2" />
+          </div>
+          <div class="row"></div><div class="row"></div>
+        </div>
+      </div>
+
+      <div class="btns">
+        <button id="render" class="primary"></button>
+        <button id="download" disabled></button>
+        <button id="clear"></button>
+      </div>
+
+      <div class="statusLine">
+        <p id="status" class="badge" aria-live="polite">Ready</p>
+        <span class="badge" id="stats">–</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: PREVIEW -->
+    <div class="card preview">
+      <div class="progress" id="progressRow">
+        <div class="bar"><div id="barFill" class="fill"></div></div>
+        <div id="barPct" class="pct">0%</div>
+      </div>
+      <div class="previewStage">
+        <div id="canvasStage"></div>
+        <div class="overlay" id="overlay">
+          <div class="overlayBox">
+            <div class="spinner" role="progressbar" aria-label="Processing"></div>
+            <div class="badge" id="overlayText">Processing…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Hidden working canvas for image sampling -->
+<canvas id="hiddenCanvas" style="display:none"></canvas>
+
+<script src="stipple_app.js"></script>
+</body>
+</html>
