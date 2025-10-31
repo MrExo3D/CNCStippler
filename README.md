@@ -1,6 +1,6 @@
-# SVG Stipple Generator
+# CNC Stippler
 
-A browser-based tool that converts black-and-white images into optimized SVG stipple patterns.  
+A browser-based tool that converts images into optimized SVG stipple patterns.  
 Built for creative makers, CNC artists, and designers who need precise, scalable dot patterns based on image brightness.
 ---
 
