@@ -1,4 +1,4 @@
-# CNC Stippler
+https://dotomatic3000.com
 
 A browser-based tool that converts images into optimized SVG stipple patterns.  
 Built for creative makers, CNC artists, and designers who need precise, scalable dot patterns based on image brightness.
@@ -31,7 +31,7 @@ You can rename or reorganize these as needed for your own deployment.
 
 ## 🧠 How It Works
 
-1. Load a **black and white** or **grayscale** image.
+1. Load a image.
 2. The script samples pixel brightness to decide dot size.
 3. Dots are distributed via a randomized placement algorithm with optional overlap prevention.
 4. A **Lloyd relaxation** (Voronoi-based optimization) step refines positions.
